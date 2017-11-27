@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+# NAME: Dawei Huang, Nathan Smith
+# EMAIL: daweihuang@ucla.edu, nathan.smith@ucla.edu
+# ID: 304792166, 704787554
+
+import sys
+
+
+# Block Consistency Audits
+
+# I-node Allocation Audits
+
+# Directory Consistency Audits
+
+if __name__ == "__main__":
+    print(sys.argv[1:])
+
+

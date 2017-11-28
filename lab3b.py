@@ -6,23 +6,29 @@
 
 import sys
 import os
+import csv
+
 
 def print_reserved_blocks(block_bitmap, indir_str, block_address, inode_number, offset, first_non_reserved_num):
     if block_address < first_non_reserved_num and block_address not in block_bitmap:
-        print("RESERVED " + indir_str + " " + block_address + " IN INODE " + inode_number + " AT OFFSET " + offset)
+        print("RESERVED " + indir_str + " " + block_address +
+              " IN INODE " + inode_number + " AT OFFSET " + offset)
         block_bitmap[block_address] = ("reserved", indirection, inode_number)
 
-def print_invalid_blocks(block_bitmap, indir_str block_address, inode_number, offset, limit):
-        
+
+def print_invalid_blocks(block_bitmap, indir_str, block_address, inode_number, offset, limit):
+
     if block_address < 0 or block_address >= limit:
-        print("INVALID " + indir_str + " " + block_address + " IN INODE " + inode_number + " AT OFFSET " + offset)
+        print("INVALID " + indir_str + " " + block_address +
+              " IN INODE " + inode_number + " AT OFFSET " + offset)
         block_bitmap[block_address] = ("invalid", indirection, inode_number)
 
-#def print_duplicate_blocks(block_address, indir_str, block_bitmap, duplicate_map):
+# def print_duplicate_blocks(block_address, indir_str, block_bitmap, duplicate_map):
 #    if block_address in duplicate_map:
 #        print("DUPLICATE " + indir_str + " " + block_address + " IN INODE " + )
 #    else:
-        
+
+
 def block_audit(file_list):
     block_size = 0
     inode_size = 0
@@ -36,11 +42,11 @@ def block_audit(file_list):
     block_bitmap = {}
     offset = 0
     duplicate_map = {}
-    
-    #print(type(file_list))
-    
+
+    # print(type(file_list))
+
     for line in file_list:
-        #print(type(line))
+        # print(type(line))
         if line[0] == "SUPERBLOCK":
             block_size = int(line[3])
             inode_size = int(line[4])
@@ -49,7 +55,8 @@ def block_audit(file_list):
             num_of_blocks_in_this_group = int(line[2])
             num_of_inodes_in_this_group = int(line[3])
             first_block_inode = int(line[8])
-            first_non_reserved_num = first_block_inode + inode_size*num_of_inodes_in_this_group/block_size
+            first_non_reserved_num = first_block_inode + \
+                inode_size * num_of_inodes_in_this_group / block_size
 
         if line[0] == "BFREE":
             block_num = line[1]
@@ -66,9 +73,10 @@ def block_audit(file_list):
 
                 if block_address in block_bitmap:
                     if block_bitmap[block_address][0] == "free":
-                        print("ALLOCATED BLOCK " + block_address + " ON FREELIST")
+                        print("ALLOCATED BLOCK " +
+                              block_address + " ON FREELIST")
                     else:
-                        #how to handle duplicate
+                        # how to handle duplicate
                         print_duplicate_blocks()
 
                 indir_str = ""
@@ -80,16 +88,19 @@ def block_audit(file_list):
                     offset = 256 + 12
                 if index == len_ - 1:
                     indir_str = "TRIPLE INDIRECT"
-                    offset = 256*256 + 256 + 12
+                    offset = 256 * 256 + 256 + 12
                 indir_str = indir_str + " BLOCK"
 
                 # how to find invalid blocks
-                print_invalid_blocks(block_bitmap, indir_str, block_address, inode_number, offset, num_of_blocks_in_this_group)
-                
+                print_invalid_blocks(block_bitmap, indir_str, block_address,
+                                     inode_number, offset, num_of_blocks_in_this_group)
+
                 # how to find reserved blocks
-                print_reserved_blocks(block_bitmap, indir_str, block_address, inode_number, offset, first_non_reserved_num)
+                print_reserved_blocks(
+                    block_bitmap, indir_str, block_address, inode_number, offset, first_non_reserved_num)
 
                 # how to find unreferenced blocks
+
 
 if __name__ == "__main__":
     if len(sys.argv[1:]) != 1:
@@ -98,7 +109,9 @@ if __name__ == "__main__":
 
     if not os.path.isfile(sys.argv[1]):
         print("[Error]: File does not exist.", file=sys.stderr)
-        sys.exit(1)if len(sys.argv) != 2:
+        sys.exit(1)
+
+    if len(sys.argv) != 2:
         sys.stderr.write("Must have one arguments\n")
         exit(1)
 

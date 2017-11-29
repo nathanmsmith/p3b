@@ -65,7 +65,7 @@ def block_audit(file_list):
         if line[0] == "INODE":
             block_addresses = line[12:]
             inode_number = line[1]
-            len_ = len(block_addresses)
+            length = len(block_addresses)
             for index, block_address in enumerate(block_addresses):
                 block_address = int(block_address)
                 if block_address == 0:
@@ -80,13 +80,13 @@ def block_audit(file_list):
                         print_duplicate_blocks()
 
                 indir_str = ""
-                if index == len_ - 3:
+                if index == length - 3:
                     indir_str = "INDIRECT"
                     offset = 12
-                if index == len_ - 2:
+                if index == length - 2:
                     indir_str = "DOUBLE INDIRECT"
                     offset = 256 + 12
-                if index == len_ - 1:
+                if index == length - 1:
                     indir_str = "TRIPLE INDIRECT"
                     offset = 256 * 256 + 256 + 12
                 indir_str = indir_str + " BLOCK"

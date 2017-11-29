@@ -69,20 +69,20 @@ def block_audit(file_list):
             block_size = int(line[3])
             inode_size = int(line[4])
 
-        if line[0] == "GROUP":
+        elif line[0] == "GROUP":
             num_of_blocks_in_this_group = int(line[2])
             num_of_inodes_in_this_group = int(line[3])
             first_block_inode = int(line[8])
-            first_non_reserved_num = first_block_inode + \
-                inode_size * num_of_inodes_in_this_group / block_size
+            first_non_reserved_num = int(first_block_inode + \
+                inode_size * num_of_inodes_in_this_group / block_size)
 
-        if line[0] == "BFREE":
-            block_address = line[1]
+        elif line[0] == "BFREE":
+            block_address = int(line[1])
             block_bitmap[block_address] = ("free")
 
-        if line[0] == "INODE":
+        elif line[0] == "INODE":
             block_addresses = line[12:]
-            inode_number = line[1]
+            inode_number = int(line[1])
             length = len(block_addresses)
             for index, block_address in enumerate(block_addresses):
                 block_address = int(block_address)
@@ -117,10 +117,10 @@ def block_audit(file_list):
                 print_reserved_blocks(
                     block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
 
-        if line[0] == "INDIRECT":
-            inode_number = line[1]
-            indirection_level = line[2]
-            block_address = line[5]
+        elif line[0] == "INDIRECT":
+            inode_number = int(line[1])
+            indirection_level = int(line[2])
+            block_address = int(line[5])
 
             if block_address in block_bitmap:
                 if block_bitmap[block_address][0] == "free":
@@ -142,18 +142,37 @@ def block_audit(file_list):
             print_reserved_blocks(
                     block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
 
-        # how to find unreferenced blocks
-        for block_number in range(first_non_reserved_num, num_of_blocks_in_this_group):
-            if block_number not in block_bitmap:
-                print("UNREFERENCED BLOCK " + str(block_number))
+    # how to find unreferenced blocks
+    for block_number in range(first_non_reserved_num, num_of_blocks_in_this_group):
+        if block_number not in block_bitmap:
+            print("UNREFERENCED BLOCK " + str(block_number))
 
 def inode_audit(file_list):
-    inode_bitmap = {}
+    inode_free_list = {}
+    first_non_reserved_inode = 0
+    total_num_of_inodes = 0
     for line in file_list:
         if line[0] == "SUPERBLOCK":
-            inode_number = 
+            total_num_of_inodes = int(line[2])
+            first_non_reserved_inode = int(line[7])
+
+        elif line[0] == "IFREE":
+            inode_number = int(line[1])
+            inode_free_list[inode_number] = True
+
+        elif line[0] == "INODE":
+            inode_number = int(line[1])
+            if inode_number in inode_free_list and inode_free_list[inode_number] == True:
+                print("ALLOCATED INODE " + str(inode_number) + " ON FREELIST")
+            inode_free_list[inode_number] = False
         
-        
+    # how to find unallocated inodes
+    for inode_number in range(first_non_reserved_inode, total_num_of_inodes):
+        if inode_number not in inode_free_list:
+            print("UNALLOCATED INODE " + str(inode) + " NOT ON FREELIST")
+
+#def directory_audit(file_list):
+    
 
 if __name__ == "__main__":
     if len(sys.argv[1:]) != 1:
@@ -173,7 +192,7 @@ if __name__ == "__main__":
         file_list = csv.reader(file)
         block_audit(file_list)
         inode_audit(file_list)
-
+        # directory_audit(file_list)
     # Block Consistency Audits
     # I-node Allocation Audits
     # Directory Consistency Audits

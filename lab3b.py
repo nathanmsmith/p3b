@@ -9,25 +9,43 @@ import os
 import csv
 
 
-def print_reserved_blocks(block_bitmap, indir_str, block_address, inode_number, offset, first_non_reserved_num):
+def print_reserved_blocks(block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num):
     if block_address < first_non_reserved_num and block_address not in block_bitmap:
-        print("RESERVED " + indir_str + " " + block_address +
-              " IN INODE " + inode_number + " AT OFFSET " + offset)
-        block_bitmap[block_address] = ("reserved", indirection, inode_number)
+        print("RESERVED " + indir_str(indirection_level) + " " + block_address +
+              " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
+        block_bitmap[block_address] = ("reserved", indirection_level, inode_number, False)
 
 
-def print_invalid_blocks(block_bitmap, indir_str, block_address, inode_number, offset, limit):
+def print_invalid_blocks(block_bitmap, indirection_level, block_address, inode_number, limit):
 
     if block_address < 0 or block_address >= limit:
-        print("INVALID " + indir_str + " " + block_address +
-              " IN INODE " + inode_number + " AT OFFSET " + offset)
-        block_bitmap[block_address] = ("invalid", indirection, inode_number)
+        print("INVALID " + indir_str(indirection_level) + " " + block_address +
+              " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
+        block_bitmap[block_address] = ("invalid", indirection_level, inode_number, False)
 
-# def print_duplicate_blocks(block_address, indir_str, block_bitmap, duplicate_map):
-#    if block_address in duplicate_map:
-#        print("DUPLICATE " + indir_str + " " + block_address + " IN INODE " + )
-#    else:
+def print_duplicate_blocks(block_address, indirection_level, inode_number):
+    print("DUPLICATE " + indir_str(indirection_level) + " " + block_address + " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
 
+def indir_str(indirection_level):
+    indir_str = ""
+    if indirection_level == 1:
+        indir_str = "INDIRECT"
+    elif indirection_level == 2:
+        indir_str = "DOUBLE INDIRECT"
+    elif indirection_level == 3:
+        indir_str = "TRIPLE INDIRECT"
+    indir_str = indir_str + " BLOCK"
+    return indir_str
+
+def indir_offset(indirection_level):
+    offset = 0
+    if indirection_level == 1:
+        offset = 12
+    elif indirection_level == 2:
+        offset = 256 + 12
+    elif indirection_level == 3:
+        offset = 256 * 256 + 256 + 12
+    return offset
 
 def block_audit(file_list):
     block_size = 0
@@ -37,8 +55,8 @@ def block_audit(file_list):
     first_block_inode = 0
     first_non_reserved_num = 0
     indirection_level = 0
-    block_num = 0
-    inode_num = 0
+    block_address = 0
+    inode_number = 0
     block_bitmap = {}
     offset = 0
     duplicate_map = {}
@@ -59,8 +77,8 @@ def block_audit(file_list):
                 inode_size * num_of_inodes_in_this_group / block_size
 
         if line[0] == "BFREE":
-            block_num = line[1]
-            block_bitmap[block_num] = ("free", 0)
+            block_address = line[1]
+            block_bitmap[block_address] = ("free")
 
         if line[0] == "INODE":
             block_addresses = line[12:]
@@ -71,36 +89,71 @@ def block_audit(file_list):
                 if block_address == 0:
                     continue
 
+                indirection_level = 0
+                if index == length - 3:
+                    indirection_level = 1
+                elif index == length - 2:
+                    indirection_level = 2
+                elif index == length - 1:
+                    indirection_level = 3
+                
                 if block_address in block_bitmap:
                     if block_bitmap[block_address][0] == "free":
                         print("ALLOCATED BLOCK " +
                               block_address + " ON FREELIST")
                     else:
                         # how to handle duplicate
-                        print_duplicate_blocks()
-
-                indir_str = ""
-                if index == length - 3:
-                    indir_str = "INDIRECT"
-                    offset = 12
-                if index == length - 2:
-                    indir_str = "DOUBLE INDIRECT"
-                    offset = 256 + 12
-                if index == length - 1:
-                    indir_str = "TRIPLE INDIRECT"
-                    offset = 256 * 256 + 256 + 12
-                indir_str = indir_str + " BLOCK"
+                        print_duplicate_blocks(block_address, indirection_level, inode_number)
+                        # [3] checks to see if this duplicate block has been printed out before
+                        if block_bitmap[block_address][3] == False:
+                            block_bitmap[block_address][3] = True
+                            print_duplicate_blocks(block_address, block_bitmap[block_address][1], block_bitmap[block_address][2])
 
                 # how to find invalid blocks
-                print_invalid_blocks(block_bitmap, indir_str, block_address,
-                                     inode_number, offset, num_of_blocks_in_this_group)
+                print_invalid_blocks(block_bitmap, indirection_level, block_address,
+                                     inode_number, num_of_blocks_in_this_group)
 
                 # how to find reserved blocks
                 print_reserved_blocks(
-                    block_bitmap, indir_str, block_address, inode_number, offset, first_non_reserved_num)
+                    block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
 
-                # how to find unreferenced blocks
+        if line[0] == "INDIRECT":
+            inode_number = line[1]
+            indirection_level = line[2]
+            block_address = line[5]
 
+            if block_address in block_bitmap:
+                if block_bitmap[block_address][0] == "free":
+                    print("ALLOCATED BLOCK " +
+                              block_address + " ON FREELIST")
+                else:
+                     # how to handle duplicate
+                    print_duplicate_blocks(block_address, indirection_level, inode_number)
+                    # [3] checks to see if this duplicate block has been printed out before
+                    if block_bitmap[block_address][3] == False:
+                        block_bitmap[block_address][3] = True
+                        print_duplicate_blocks(block_address, block_bitmap[block_address][1], block_bitmap[block_address][2])
+
+            # how to find invalid blocks
+            print_invalid_blocks(block_bitmap, indirection_level, block_address,
+                                     inode_number, num_of_blocks_in_this_group)
+
+            # how to find reserved blocks
+            print_reserved_blocks(
+                    block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
+
+        # how to find unreferenced blocks
+        for block_number in range(first_non_reserved_num, num_of_blocks_in_this_group):
+            if block_number not in block_bitmap:
+                print("UNREFERENCED BLOCK " + str(block_number))
+
+def inode_audit(file_list):
+    inode_bitmap = {}
+    for line in file_list:
+        if line[0] == "SUPERBLOCK":
+            inode_number = 
+        
+        
 
 if __name__ == "__main__":
     if len(sys.argv[1:]) != 1:
@@ -119,6 +172,7 @@ if __name__ == "__main__":
     with open(file_system, 'r') as file:
         file_list = csv.reader(file)
         block_audit(file_list)
+        inode_audit(file_list)
 
     # Block Consistency Audits
     # I-node Allocation Audits

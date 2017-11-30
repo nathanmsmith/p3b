@@ -13,15 +13,13 @@ def print_reserved_blocks(block_bitmap, indirection_level, block_address, inode_
     if block_address < first_non_reserved_num and block_address not in block_bitmap:
         print("RESERVED " + indir_str(indirection_level) + " " + block_address +
               " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
-        block_bitmap[block_address] = ("reserved", indirection_level, inode_number, False)
-
+    block_bitmap[block_address] = ("reserved", indirection_level, inode_number, False)
 
 def print_invalid_blocks(block_bitmap, indirection_level, block_address, inode_number, limit):
-
     if block_address < 0 or block_address >= limit:
         print("INVALID " + indir_str(indirection_level) + " " + block_address +
               " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
-        block_bitmap[block_address] = ("invalid", indirection_level, inode_number, False)
+    block_bitmap[block_address] = ("reserved", indirection_level, inode_number, False)
 
 def print_duplicate_blocks(block_address, indirection_level, inode_number):
     print("DUPLICATE " + indir_str(indirection_level) + " " + block_address + " IN INODE " + inode_number + " AT OFFSET " + indir_offset(indirection_level))
@@ -116,6 +114,7 @@ def block_audit(file_list):
                 # how to find reserved blocks
                 print_reserved_blocks(
                     block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
+                
 
         elif line[0] == "INDIRECT":
             inode_number = int(line[1])
@@ -143,9 +142,9 @@ def block_audit(file_list):
                     block_bitmap, indirection_level, block_address, inode_number, first_non_reserved_num)
 
     # how to find unreferenced blocks
-    for block_number in range(first_non_reserved_num, num_of_blocks_in_this_group):
-        if block_number not in block_bitmap:
-            print("UNREFERENCED BLOCK " + str(block_number))
+    for block_num in range(first_non_reserved_num, num_of_blocks_in_this_group):
+        if block_num not in block_bitmap:
+            print("UNREFERENCED BLOCK " + str(block_num))
 
 def inode_audit(file_list):
     inode_free_list = {}

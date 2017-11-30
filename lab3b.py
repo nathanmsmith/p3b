@@ -218,7 +218,7 @@ def directory_audit(file_list, inode_allocated_list):
 
     for inode_number in inode_allocated_list:
         if inode_allocated_list[inode_number][0] != inode_allocated_list[inode_number][1]:
-            print("INODE " + str(inode_number) + " HAS " + str(inode_allocated_list[inode_number][0]) + " LINKS BUT LINKCOUNT IS " + str(inode_allocated_list[inode_number][1])
+            print("INODE " + str(inode_number) + " HAS " + str(inode_allocated_list[inode_number][0]) + " LINKS BUT LINKCOUNT IS " + str(inode_allocated_list[inode_number][1]))
 
 
 if __name__ == "__main__":

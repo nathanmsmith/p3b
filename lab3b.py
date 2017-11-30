@@ -40,12 +40,12 @@ def print_duplicate_blocks(block_address, indirection_level, inode_number):
 def indir_str(indirection_level):
     indir_str = ""
     if indirection_level == 1:
-        indir_str = "INDIRECT"
+        indir_str = "INDIRECT "
     elif indirection_level == 2:
-        indir_str = "DOUBLE INDIRECT"
+        indir_str = "DOUBLE INDIRECT "
     elif indirection_level == 3:
-        indir_str = "TRIPLE INDIRECT"
-    indir_str = indir_str + " BLOCK"
+        indir_str = "TRIPLE INDIRECT "
+    indir_str = indir_str + "BLOCK"
     return indir_str
 
 
@@ -168,7 +168,7 @@ def block_audit(file_list):
     for block_num in range(first_non_reserved_num,
                            num_of_blocks_in_this_group):
         if block_num not in block_bitmap:
-            print("UNREFERENCED BLOCK " + str(block_num))
+            print("UNREFERENCED BLOCK {}".format(block_num))
 
 
 def inode_audit(file_list):
@@ -190,13 +190,13 @@ def inode_audit(file_list):
         elif line[0] == "INODE":
             inode_number = int(line[1])
             if inode_number in inode_free_list and inode_free_list[inode_number] is True:
-                print("ALLOCATED INODE " + str(inode_number) + " ON FREELIST")
+                print("ALLOCATED INODE {} ON FREELIST".format(inode_number))
             inode_free_list[inode_number] = False
 
     # how to find unallocated inodes
     for inode_number in range(first_non_reserved_inode, total_num_of_inodes):
         if inode_number not in inode_free_list:
-            print("UNALLOCATED INODE " + str(inode) + " NOT ON FREELIST")
+            print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode))
         else:
             inode_allocated_list[inode_number] = (0, 0, 0)
 
@@ -222,12 +222,12 @@ def directory_audit(file_list, inode_allocated_list):
             dir_str = line[6]
 
             if dirent_inode not in inode_allocated_list:
-                print("DIRECTORY INODE " + str(directory_inode) + " NAME " +
-                      dir_str + " UNALLOCATED INODE " + str(dirent_inode))
+                print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
+                    directory_inode, dir_str, dirent_inode))
             else:
                 if dirent_inode < 1 or dirent_inode > total_num_of_inodes:
-                    print("DIRECTORY INODE " + str(directory_inode) + " NAME "
-                          + dir_str + " INVALID INODE " + str(dirent_inode))
+                    print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
+                        directory_inode, dir_str, dirent_inode))
                 else:
                     inode_allocated_list[dirent_inode][0] += 1
                     if inode_allocated_list[dirent_inode][3] == 0:
@@ -235,22 +235,21 @@ def directory_audit(file_list, inode_allocated_list):
                             3] == directory_inode
 
             if dir_str == "." and dirent_inode != directory_inode:
-                print("DIRECTORY INODE " + str(directory_inode) + " NAME " +
-                      dir_str + " LINK TO INODE " + str(dirent_inode) +
-                      " SHOULD BE " + str(directory_inode))
-
+                print(
+                    "DIRECTORY INODE {} NAME {} LINK TO INODE {} SHOULD BE {}".
+                    format(directory_inode, dir_str, dirent_inode,
+                           directory_inode))
             elif dir_str == ".." and inode_allocated_list[directory_inode][2] != dirent_inode:
-                print("DIRECTORY INODE " + str(directory_inode) + " NAME " +
-                      dir_str + " LINK TO INODE " +
-                      str(dirent_inode) + " SHOULD BE " + str(
-                          inode_allocated_list[directory_inode][2]))
+                print(
+                    "DIRECTORY INODE {} NAME {} LINK TO INODE {} SHOULD BE {}".
+                    format(directory_inode, dir_str, dirent_inode,
+                           inode_allocated_list[directory_inode][2]))
 
     for inode_number in inode_allocated_list:
         if inode_allocated_list[inode_number][0] != inode_allocated_list[inode_number][1]:
-            print("INODE " + str(inode_number) + " HAS " +
-                  str(inode_allocated_list[inode_number][0]) +
-                  " LINKS BUT LINKCOUNT IS " +
-                  str(inode_allocated_list[inode_number][1]))
+            print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
+                inode_number, inode_allocated_list[inode_number][0],
+                inode_allocated_list[inode_number][1]))
 
 
 if __name__ == "__main__":
@@ -274,6 +273,3 @@ if __name__ == "__main__":
         directory_audit(file_list, inode_allocated_list)
 
     file.close()
-    # Block Consistency Audits
-    # I-node Allocation Audits
-    # Directory Consistency Audits

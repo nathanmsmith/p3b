@@ -12,4 +12,4 @@ clean:
 	rm -f lab3b lab3b-304792166.tar.gz
 
 dist: clean
-	tar -zcvf lab3b-304792166.tar.gz Makefile README lab3a.py
+	tar -zcvf lab3b-304792166.tar.gz Makefile README lab3b.py

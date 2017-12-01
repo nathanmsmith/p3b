@@ -325,7 +325,9 @@ def block_audit():
                 block.indir_str(), block.address, block.inode_number,
                 block.offset))
         elif block.address < 8:
-            print("RESERVED {} {} IN INODE {} AT OFFSET {}")
+            print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(
+                block.indir_str(), block.address, block.inode_number,
+                block.offset)))
 
 
 def inode_audit():

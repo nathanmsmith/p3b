@@ -329,15 +329,19 @@ def block_audit():
                 block.indir_str(), block.address, block.inode_number,
                 block.offset))
 
+    for block in range(8, total_block_number):
+        if block.number not in free_block_numbers and block not in blocks:
+            print("UNREFERENCED BLOCK {}".format(block.address))
+        elif block.number in free_block_numbers and block in blocks:
+            print("ALLOCATED BLOCK {} ON FREELIST".format(block.address))
+
 
 def inode_audit():
     for inode in inodes:
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
-            errors += 1
         elif not inode.allocated and inode.number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
-            errors += 1
 
 
 if __name__ == "__main__":
@@ -362,7 +366,8 @@ if __name__ == "__main__":
         print("[Error]: Error reading file.", file=sys.stderr)
         sys.exit(1)
 
-    if errors > 0:
-        exit(2)
-    else:
-        exit(0)
+
+    # if errors > 0:
+    #     exit(2)
+    # else:
+    #     exit(0)

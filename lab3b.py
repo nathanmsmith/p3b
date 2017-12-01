@@ -190,8 +190,8 @@ if __name__ == "__main__":
             process_file(file_list)
 
             block_audit()
-            inode_audit()
-            directory_audit()
+            # inode_audit()
+            # directory_audit()
     except EnvironmentError:
         print("[Error]: Error reading file.", file=sys.stderr)
         sys.exit(1)

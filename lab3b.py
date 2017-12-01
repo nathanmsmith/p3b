@@ -19,18 +19,10 @@ class Inode:
 
 
 class Block:
-    def __init__(self, indirection_level, address, inode_number):
+    def __init__(self, indirection_level, number, inode_number, offset):
         self.indirection_level = indirection_level
-        self.address = address
+        self.number = number
         self.inode_number = inode_number
-
-        offset = 0
-        if self.indirection_level == 1:
-            offset = 12
-        elif self.indirection_level == 2:
-            offset = 256 + 12
-        elif self.indirection_level == 3:
-            offset = 256**2 + 256 + 12
         self.offset = offset
 
     def indir_str(self):
@@ -102,39 +94,55 @@ def process_file(file):
             link_count = int(line[6])
             inodes.append(Inode(inode_number, allocated, link_count))
 
-            # Process Blocks
-            block_addresses = [int(a) for a in line[12:]]
-            length = len(block_addresses)
-            for index, block_address in enumerate(block_addresses):
-                if block_address != 0:
-                    indirection_level = 0
-                    if index == length - 3:
-                        indirection_level = 1
-                    elif index == length - 2:
-                        indirection_level = 2
-                    elif index == length - 1:
-                        indirection_level = 3
-                    blocks.append(
-                        Block(indirection_level, block_address, inode_number))
+            # Process Direct Blocks and First Single, Double, and Triple Indirect Blocks
+            block_numbers = [int(a) for a in line[12:24]]
+            single_indirect_block_number = int(line[24])
+            double_indirect_block_number = int(line[25])
+            triple_indirect_block_number = int(line[26])
+
+            for offset, block_number in enumerate(block_numbers):
+                if block_number != 0:
+                    blocks.append(Block(0, block_number, inode_number, offset))
+
+            if single_indirect_block_number != 0:
+                blocks.append(
+                    Block(1, single_indirect_block_number, inode_number, 12))
+            if double_indirect_block_number != 0:
+                blocks.append(
+                    Block(2, double_indirect_block_number, inode_number,
+                          12 + 256))
+            if triple_indirect_block_number != 0:
+                blocks.append(
+                    Block(3, triple_indirect_block_number, inode_number,
+                          12 + 256 + 256**2))
+
+        elif line[0] == "INDIRECT:":
+            # Indirect
+            indirection_level = int(line[2])
+            block_number = int(line[5])
+            inode_number = int(line[1])
+            offset = int(line[3])
+            blocks.append(
+                Block(indirection_level, block_number, inode_number, offset))
 
 
 def block_audit():
     for block in blocks:
-        if block.address > total_block_number - 1:
+        if block.number > total_block_number - 1:
             print("INVALID {} {} IN INODE {} AT OFFSET {}".format(
-                block.indir_str(), block.address, block.inode_number,
+                block.indir_str(), block.number, block.inode_number,
                 block.offset))
-        elif block.address < 8:
+        elif block.number < 8:
             print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(
-                block.indir_str(), block.address, block.inode_number,
+                block.indir_str(), block.number, block.inode_number,
                 block.offset))
 
-    # block_addresses = [block.address for block in blocks]
-    # for block_address in range(8, total_block_number):
-    #     if block_address not in free_block_numbers and block not in block_addresses:
-    #         print("UNREFERENCED BLOCK {}".format(block.address))
-    #     elif block_address in free_block_numbers and block in block_addresses:
-    #         print("ALLOCATED BLOCK {} ON FREELIST".format(block.address))
+    block_numbers = [block.number for block in blocks]
+    for block_number in range(8, total_block_number):
+        if block_number not in free_block_numbers and block_number not in block_numbers:
+            print("UNREFERENCED BLOCK {}".format(block_number))
+        elif block_number in free_block_numbers and block in block_numbers:
+            print("ALLOCATED BLOCK {} ON FREELIST".format(block_number))
 
 
 def inode_audit():
@@ -153,12 +161,13 @@ def get_directory_from_inode_number(inode_number):
             return directory
     return None
 
+
 def directory_audit():
     for directory in directories:
         if directory.inode_number > total_inode_number:
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
-                directory.parent_inode, directory.file_name, directory.inode_number
-            ))
+                directory.parent_inode, directory.file_name,
+                directory.inode_number))
         elif directory.inode_number in free_inode_numbers:
             print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
                 directory.parent_inode, directory.file_name,

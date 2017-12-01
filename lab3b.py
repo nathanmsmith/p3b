@@ -37,27 +37,7 @@ from typing import List
 #         indir_offset(indirection_level)))
 
 
-# def indir_str(indirection_level):
-#     indir_str = ""
-#     if indirection_level == 1:
-#         indir_str = "INDIRECT "
-#     elif indirection_level == 2:
-#         indir_str = "DOUBLE INDIRECT "
-#     elif indirection_level == 3:
-#         indir_str = "TRIPLE INDIRECT "
-#     indir_str = indir_str + "BLOCK"
-#     return indir_str
 
-
-# def indir_offset(indirection_level):
-#     offset = 0
-#     if indirection_level == 1:
-#         offset = 12
-#     elif indirection_level == 2:
-#         offset = 256 + 12
-#     elif indirection_level == 3:
-#         offset = 256**2 + 256 + 12
-#     return offset
 
 
 # def block_audit(file_list):
@@ -256,49 +236,106 @@ class Inode:
 
 
 class Block:
-    def __init__(self, indirection_level, block_address, inode_number, offset):
+    def __init__(self, indirection_level, address, inode_number):
         self.indirection_level = indirection_level
-        self.block_address = block_address
+        self.address = address
         self.inode_number = inode_number
+
+        offset = 0
+        if self.indirection_level == 1:
+            offset = 12
+        elif self.indirection_level == 2:
+            offset = 256 + 12
+        elif self.indirection_level == 3:
+            offset = 256**2 + 256 + 12
         self.offset = offset
 
+    def indir_str(self):
+        indir_str = ""
+        if self.indirection_level == 1:
+            indir_str = "INDIRECT "
+        elif self.indirection_level == 2:
+            indir_str = "DOUBLE INDIRECT "
+        elif self.indirection_level == 3:
+            indir_str = "TRIPLE INDIRECT "
+        indir_str = indir_str + "BLOCK"
+        return indir_str
 
+
+errors = 0
+total_block_number: int
 block_size: int
 inode_size: int
 
+free_block_numbers: List[int] = []
+blocks: List[Block] = []
 free_inode_numbers: List[int] = []
 inodes: List[Inode] = []
+
+
 directories = []
 
 
 def process_file(file):
     for line in file_list:
         if line[0] == "SUPERBLOCK":
+            global total_block_number
+            total_block_number = int(line[1])
             block_size = int(line[3])
             inode_size = int(line[4])
-        elif line[0] == "GROUP":
-            num_of_blocks_in_this_group = int(line[2])
-            num_of_inodes_in_this_group = int(line[3])
-            first_block_inode = int(line[8])
-            first_non_reserved_num = int(first_block_inode + (
-                (inode_size * num_of_inodes_in_this_group) / block_size))
+        # elif line[0] == "GROUP":
+        #     num_of_blocks_in_this_group = int(line[2])
+        #     num_of_inodes_in_this_group = int(line[3])
+        #     first_block_inode = int(line[8])
+        #     first_non_reserved_num = int(first_block_inode + (
+        #         (inode_size * num_of_inodes_in_this_group) / block_size))
+        elif line[0] == "BFREE":
+            free_block_number = int(line[1])
+            free_block_numbers.append(free_block_number)
         elif line[0] == "IFREE":
             free_inode_number = int(line[1])
             free_inode_numbers.append(free_inode_number)
         # elif line[0] == "DIRENT":
         # directory_entry =
         elif line[0] == "INODE":
+            # Process Inode
             inode_number = int(line[1])
-            allocated = True if line[2] == 0 else False
+            allocated = True if line[2] != "0" else False
             inodes.append(Inode(inode_number, allocated))
+
+            # Process Blocks
+            block_addresses = list(map(int, line[12:]))
+            length = len(block_addresses)
+            for index, block_address in enumerate(block_addresses):
+                if block_address != 0:
+                    indirection_level = 0
+                    if index == length - 3:
+                        indirection_level = 1
+                    elif index == length - 2:
+                        indirection_level = 2
+                    elif index == length - 1:
+                        indirection_level = 3
+                    blocks.append(Block(indirection_level, block_address, inode_number))
+
+
+def block_audit():
+    for block in blocks:
+        if block.address > total_block_number - 1:
+            print("INVALID {} {} IN INODE {} AT OFFSET {}".format(
+                block.indir_str(), block.address, block.inode_number,
+                block.offset))
+        elif block.address < 8:
+            print("RESERVED {} {} IN INODE {} AT OFFSET {}")
 
 
 def inode_audit():
     for inode in inodes:
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
+            errors += 1
         elif not inode.allocated and inode.number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
+            errors += 1
 
 
 if __name__ == "__main__":
@@ -316,9 +353,14 @@ if __name__ == "__main__":
             file_list = csv.reader(file)
             process_file(file_list)
 
-            # block_audit(file_list)
+            block_audit()
             inode_audit()
             # directory_audit(file_list, inode_allocated_list)
     except EnvironmentError:
         print("[Error]: Error reading file.", file=sys.stderr)
         sys.exit(1)
+
+    if errors > 0:
+        exit(2)
+    else:
+        exit(0)

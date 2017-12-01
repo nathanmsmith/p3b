@@ -329,11 +329,12 @@ def block_audit():
                 block.indir_str(), block.address, block.inode_number,
                 block.offset))
 
-    for block in range(8, total_block_number):
-        if block.number not in free_block_numbers and block not in blocks:
-            print("UNREFERENCED BLOCK {}".format(block.address))
-        elif block.number in free_block_numbers and block in blocks:
-            print("ALLOCATED BLOCK {} ON FREELIST".format(block.address))
+    # block_addresses = [block.address for block in blocks]
+    # for block_address in range(8, total_block_number):
+    #     if block_address not in free_block_numbers and block not in block_addresses:
+    #         print("UNREFERENCED BLOCK {}".format(block.address))
+    #     elif block_address in free_block_numbers and block in block_addresses:
+    #         print("ALLOCATED BLOCK {} ON FREELIST".format(block.address))
 
 
 def inode_audit():

@@ -175,6 +175,14 @@ def get_directory_from_inode_number(inode_number):
 
 
 def directory_audit():
+
+    for inode in inodes:
+        directory = get_directory_from_inode_number(inode.number)
+        if directory is not None:
+            if inode.link_count != directory.link_count:
+                print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
+                    inode.number, directory.link_count, inode.link_count))
+
     for directory in directories:
         if directory.inode_number > total_inode_number:
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
@@ -187,12 +195,7 @@ def directory_audit():
         else:
             directory.link_count += 1
 
-    for inode in inodes:
-        directory = get_directory_from_inode_number(inode.number)
-        if directory is not None:
-            if inode.link_count != directory.link_count:
-                print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
-                    inode.number, directory.link_count, inode.link_count))
+
 
 
 if __name__ == "__main__":

@@ -196,6 +196,8 @@ def directory_audit():
             print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
                 inode.number, directory_list.count(inode.number), inode.link_count))
 
+    #print(free_inode_numbers)
+
     for directory in directories:
         if directory.inode_number > total_inode_number:
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(

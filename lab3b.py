@@ -115,8 +115,7 @@ def process_file(file):
                 blocks.append(
                     Block(3, triple_indirect_block_number, inode_number,
                           12 + 256 + 256**2))
-
-        elif line[0] == "INDIRECT:":
+        elif line[0] == "INDIRECT":
             # Indirect
             indirection_level = int(line[2])
             block_number = int(line[5])

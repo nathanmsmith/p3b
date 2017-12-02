@@ -140,7 +140,7 @@ def block_audit():
     for block_number in range(8, total_block_number):
         if block_number not in free_block_numbers and block_number not in block_numbers:
             print("UNREFERENCED BLOCK {}".format(block_number))
-        elif block_number in free_block_numbers and block in block_numbers:
+        elif block_number in free_block_numbers and block_number in block_numbers:
             print("ALLOCATED BLOCK {} ON FREELIST".format(block_number))
 
 

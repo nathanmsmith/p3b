@@ -1,7 +1,4 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
@@ -12,7 +9,7 @@
       "pythonPath": "${config:python.pythonPath}",
       "program": "${file}",
       "cwd": "${workspaceRoot}",
-      "args": ["Samples/P3B-test_9.csv"],
+      "args": ["Samples/P3B-test_10.csv"],
       "env": {},
       "envFile": "${workspaceRoot}/.env",
       "debugOptions": [

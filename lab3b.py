@@ -125,6 +125,7 @@ def process_file(file):
             offset = int(line[3])
             blocks.append(
                 Block(indirection_level, block_number, inode_number, offset))
+    # print([inode.number for inode in inodes])
 
 
 def block_audit():
@@ -182,12 +183,18 @@ def get_directory_from_inode_number(inode_number):
 
 
 def directory_audit():
+
+    # for directory in directories:
+    #     print("{}: {}".format(directory.inode_number, directory.link_count))
+    # print(type(directories))
+
+    directory_list = [directory.inode_number for directory in directories]
+    # print(directory_list)
+    
     for inode in inodes:
-        directory = get_directory_from_inode_number(inode.number)
-        if directory is not None:
-            if inode.link_count != directory.link_count:
-                print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
-                    inode.number, directory.link_count, inode.link_count))
+        if inode.link_count != directory_list.count(inode.number):
+            print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
+                inode.number, directory_list.count(inode.number), inode.link_count))
 
     for directory in directories:
         if directory.inode_number > total_inode_number:
@@ -221,7 +228,7 @@ if __name__ == "__main__":
 
             block_audit()
             inode_audit()
-            # directory_audit()
+            directory_audit()
     except EnvironmentError:
         print("[Error]: Error reading file.", file=sys.stderr)
         sys.exit(1)

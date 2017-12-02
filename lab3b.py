@@ -143,6 +143,19 @@ def block_audit():
         elif block_number in free_block_numbers and block_number in block_numbers:
             print("ALLOCATED BLOCK {} ON FREELIST".format(block_number))
 
+    # Find duplicate blocks
+    # Use separate loop so we can remove block numbers
+    for block_number in range(8, total_block_number):
+        if block_number in block_numbers and block_numbers.count(
+                block_number) > 1:
+            duplicate_blocks = filter(
+                lambda block: block.number == block_number, blocks)
+
+            for duplicate_block in duplicate_blocks:
+                print("DUPLICATE {} {} IN INODE {} AT OFFSET {}".format(
+                    duplicate_block.indir_str(), duplicate_block.number,
+                    duplicate_block.inode_number, duplicate_block.offset))
+
 
 def inode_audit():
     global allocated_inodes

@@ -9,7 +9,7 @@
       "pythonPath": "${config:python.pythonPath}",
       "program": "${file}",
       "cwd": "${workspaceRoot}",
-      "args": ["Samples/P3B-test_10.csv"],
+      "args": ["Samples/P3B-test_11.csv"],
       "env": {},
       "envFile": "${workspaceRoot}/.env",
       "debugOptions": [

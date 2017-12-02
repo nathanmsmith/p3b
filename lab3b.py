@@ -47,8 +47,9 @@ class Directory:
 
 errors = 0
 total_block_number: int
-totol_inode_number: int
+total_inode_number: int
 
+first_inode_number: int
 block_size: int
 inode_size: int
 
@@ -61,12 +62,13 @@ directories = []
 
 
 def process_file(file):
-    global total_block_number, total_inode_number
+    global total_block_number, total_inode_number, first_inode_number
 
     for line in file_list:
         if line[0] == "SUPERBLOCK":
             total_block_number = int(line[1])
             total_inode_number = int(line[2])
+            first_inode_number = int(line[7])
             block_size = int(line[3])
             inode_size = int(line[4])
         # elif line[0] == "GROUP":
@@ -166,6 +168,11 @@ def inode_audit():
         elif not inode.allocated and inode.number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
 
+    for inode_number in range(first_inode_number, total_inode_number):
+        inode_numbers = [inode.number for inode in inodes]
+        if inode_number not in inode_numbers and inode_number not in free_inode_numbers:
+            print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode_number))
+
 
 def get_directory_from_inode_number(inode_number):
     for directory in directories:
@@ -175,7 +182,6 @@ def get_directory_from_inode_number(inode_number):
 
 
 def directory_audit():
-
     for inode in inodes:
         directory = get_directory_from_inode_number(inode.number)
         if directory is not None:

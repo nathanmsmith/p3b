@@ -213,8 +213,7 @@ def directory_audit():
             directory_entry.link_count += 1
 
     for directory_entry in directory_entries:
-        inode = get_inode_from_number(directory_entry.inode_number)
-        if inode.allocated and inode.number <= total_inode_number:
+        if directory_entry.inode_number not in free_inode_numbers and inode.number <= total_inode_number:
             directory_entry.inode_number_to_parent = directory_entry.parent_inode
 
         if directory_entry.inode_number == 2:

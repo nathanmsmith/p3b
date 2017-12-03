@@ -74,10 +74,9 @@ def process_file(file):
             block_size = int(line[3])
             inode_size = int(line[4])
         elif line[0] == "GROUP":
-            num_of_blocks_in_this_group = int(line[2])
             num_of_inodes_in_this_group = int(line[3])
             first_block_inode = int(line[8])
-            first_non_reserved_inode_number = first_block_inode + ((inode_size * num_of_inodes_in_this_group) / block_size)
+            first_non_reserved_inode_number = int(first_block_inode + ((inode_size * num_of_inodes_in_this_group) / block_size))
         elif line[0] == "BFREE":
             free_block_number = int(line[1])
             free_block_numbers.append(free_block_number)
@@ -129,7 +128,7 @@ def process_file(file):
 
 
 def block_audit():
-    globals errors
+    global errors
 
     for block in blocks:
         if block.number > total_block_number - 1:
@@ -144,7 +143,8 @@ def block_audit():
             errors += 1
 
     block_numbers = [block.number for block in blocks]
-    for block_number in range(first_non_reserved_inode_number, total_block_number):
+    for block_number in range(first_non_reserved_inode_number,
+                              total_block_number):
         if block_number not in free_block_numbers and block_number not in block_numbers:
             print("UNREFERENCED BLOCK {}".format(block_number))
             errors += 1
@@ -154,7 +154,8 @@ def block_audit():
 
     # Find duplicate blocks
     # Use separate loop so we can remove block numbers
-    for block_number in range(first_non_reserved_inode_number, total_block_number):
+    for block_number in range(first_non_reserved_inode_number,
+                              total_block_number):
         if block_number in block_numbers and block_numbers.count(
                 block_number) > 1:
             duplicate_blocks = filter(
@@ -166,12 +167,12 @@ def block_audit():
                     duplicate_block.inode_number, duplicate_block.offset))
                 errors += 1
 
-                
+
 def inode_audit():
     global errors
 
     for inode in inodes:
-        
+
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
             allocated_inode_numbers.append(inode.number)
@@ -203,7 +204,7 @@ def get_directory_from_inode_number(inode_number):
 
 
 def directory_audit():
-    globals errors
+    global errors
 
     directory_list = [
         directory_entry.inode_number for directory_entry in directory_entries

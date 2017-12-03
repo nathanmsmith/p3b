@@ -51,6 +51,7 @@ total_block_number: int
 total_inode_number: int
 
 first_inode_number: int
+first_non_reserved_inode_number: int
 block_size: int
 inode_size: int
 
@@ -63,7 +64,7 @@ directory_entries = []
 
 
 def process_file(file):
-    global total_block_number, total_inode_number, first_inode_number
+    global total_block_number, total_inode_number, first_inode_number, first_non_reserved_inode_number
 
     for line in file_list:
         if line[0] == "SUPERBLOCK":
@@ -72,12 +73,11 @@ def process_file(file):
             first_inode_number = int(line[7])
             block_size = int(line[3])
             inode_size = int(line[4])
-        # elif line[0] == "GROUP":
-        #     num_of_blocks_in_this_group = int(line[2])
-        #     num_of_inodes_in_this_group = int(line[3])
-        #     first_block_inode = int(line[8])
-        #     first_non_reserved_num = int(first_block_inode + (
-        #         (inode_size * num_of_inodes_in_this_group) / block_size))
+        elif line[0] == "GROUP":
+            num_of_blocks_in_this_group = int(line[2])
+            num_of_inodes_in_this_group = int(line[3])
+            first_block_inode = int(line[8])
+            first_non_reserved_inode_number = first_block_inode + ((inode_size * num_of_inodes_in_this_group) / block_size)
         elif line[0] == "BFREE":
             free_block_number = int(line[1])
             free_block_numbers.append(free_block_number)
@@ -126,7 +126,6 @@ def process_file(file):
             offset = int(line[3])
             blocks.append(
                 Block(indirection_level, block_number, inode_number, offset))
-    # print([inode.number for inode in inodes])
 
 
 def block_audit():
@@ -138,14 +137,14 @@ def block_audit():
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
             errors += 1
-        elif block.number < 8:
+        elif block.number < first_non_reserved_inode_number:
             print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
             errors += 1
 
     block_numbers = [block.number for block in blocks]
-    for block_number in range(8, total_block_number):
+    for block_number in range(first_non_reserved_inode_number, total_block_number):
         if block_number not in free_block_numbers and block_number not in block_numbers:
             print("UNREFERENCED BLOCK {}".format(block_number))
             errors += 1
@@ -155,7 +154,7 @@ def block_audit():
 
     # Find duplicate blocks
     # Use separate loop so we can remove block numbers
-    for block_number in range(8, total_block_number):
+    for block_number in range(first_non_reserved_inode_number, total_block_number):
         if block_number in block_numbers and block_numbers.count(
                 block_number) > 1:
             duplicate_blocks = filter(

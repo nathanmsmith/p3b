@@ -40,10 +40,10 @@ class Block:
 class DirectoryEntry:
     def __init__(self, parent_inode, inode_number, file_name):
         self.parent_inode = parent_inode
+        self.computed_parent_inode: int
         self.inode_number = inode_number
         self.file_name = file_name
         self.link_count = 0
-        self.inode_number_to_parent: int
 
 
 errors = 0
@@ -130,22 +130,28 @@ def process_file(file):
 
 
 def block_audit():
+    globals errors
+
     for block in blocks:
         if block.number > total_block_number - 1:
             print("INVALID {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
+            errors += 1
         elif block.number < 8:
             print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
+            errors += 1
 
     block_numbers = [block.number for block in blocks]
     for block_number in range(8, total_block_number):
         if block_number not in free_block_numbers and block_number not in block_numbers:
             print("UNREFERENCED BLOCK {}".format(block_number))
+            errors += 1
         elif block_number in free_block_numbers and block_number in block_numbers:
             print("ALLOCATED BLOCK {} ON FREELIST".format(block_number))
+            errors += 1
 
     # Find duplicate blocks
     # Use separate loop so we can remove block numbers
@@ -159,24 +165,29 @@ def block_audit():
                 print("DUPLICATE {} {} IN INODE {} AT OFFSET {}".format(
                     duplicate_block.indir_str(), duplicate_block.number,
                     duplicate_block.inode_number, duplicate_block.offset))
+                errors += 1
 
                 
 def inode_audit():
-    global allocated_inodes
-    
+    global errors
+
     for inode in inodes:
         
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
             allocated_inode_numbers.append(inode.number)
+            errors += 1
         elif not inode.allocated and inode.number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
+            errors += 1
 
 
     for inode_number in range(first_inode_number, total_inode_number):
         inode_numbers = [inode.number for inode in inodes]
         if inode_number not in inode_numbers and inode_number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode_number))
+            errors += 1
+
 
 def get_inode_from_number(inode_number):
     for inode in inodes:
@@ -193,6 +204,8 @@ def get_directory_from_inode_number(inode_number):
 
 
 def directory_audit():
+    globals errors
+
     directory_list = [
         directory_entry.inode_number for directory_entry in directory_entries
     ]
@@ -202,25 +215,28 @@ def directory_audit():
             print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
                 inode.number, directory_list.count(inode.number),
                 inode.link_count))
+            errors += 1
 
     for directory_entry in directory_entries:
         if directory_entry.inode_number > total_inode_number:
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))
+            errors += 1
         elif directory_entry.inode_number in free_inode_numbers and directory_entry.inode_number not in allocated_inode_numbers:
             print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))
+            errors += 1
         else:
             directory_entry.link_count += 1
 
     for directory_entry in directory_entries:
         if directory_entry.inode_number not in free_inode_numbers and inode.number <= total_inode_number:
-            directory_entry.inode_number_to_parent = directory_entry.parent_inode
+            directory_entry.computed_parent_inode = directory_entry.parent_inode
 
         if directory_entry.inode_number == 2:
-            directory_entry.inode_number_to_parent = 2
+            directory_entry.computed_parent_inode = 2
 
     for directory_entry in directory_entries:
         if directory_entry.file_name == "'.'" and directory_entry.inode_number != directory_entry.parent_inode:
@@ -228,11 +244,13 @@ def directory_audit():
                   format(directory_entry.parent_inode,
                          directory_entry.inode_number,
                          directory_entry.parent_inode))
-        elif directory_entry.file_name == "'..'" and directory_entry.inode_number != directory_entry.inode_number_to_parent:
+            errors += 1
+        elif directory_entry.file_name == "'..'" and directory_entry.inode_number != directory_entry.computed_parent_inode:
             print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".
                   format(directory_entry.parent_inode,
                          directory_entry.inode_number,
-                         directory_entry.inode_number_to_parent))
+                         directory_entry.computed_parent_inode))
+            errors += 1
 
 
 if __name__ == "__main__":
@@ -257,7 +275,7 @@ if __name__ == "__main__":
         print("[Error]: Error reading file.", file=sys.stderr)
         sys.exit(1)
 
-    # if errors > 0:
-    #     exit(2)
-    # else:
-    #     exit(0)
+    if errors > 0:
+        exit(2)
+    else:
+        exit(0)

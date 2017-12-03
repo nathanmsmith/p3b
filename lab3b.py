@@ -58,7 +58,7 @@ blocks: List[Block] = []
 free_inode_numbers: List[int] = []
 inodes: List[Inode] = []
 
-directories = []
+directory_entries = []
 
 
 def process_file(file):
@@ -87,7 +87,7 @@ def process_file(file):
             parent_inode = int(line[1])
             inode_number = int(line[3])
             file_name = line[6]
-            directories.append(
+            directory_entries.append(
                 Directory(parent_inode, inode_number, file_name))
         elif line[0] == "INODE":
             # Process Inode
@@ -176,41 +176,42 @@ def inode_audit():
 
 
 def get_directory_from_inode_number(inode_number):
-    for directory in directories:
-        if directory.inode_number == inode_number:
-            return directory
+    for directory_entry in directory_entries:
+        if directory_entry.inode_number == inode_number:
+            return directory_entry
     return None
 
 
 def directory_audit():
 
-    # for directory in directories:
-    #     print("{}: {}".format(directory.inode_number, directory.link_count))
-    # print(type(directories))
+    # for directory_entry in directory_entries:
+    #     print("{}: {}".format(directory_entry.inode_number, directory_entry.link_count))
+    # print(type(directory_entries))
 
-    directory_list = [directory.inode_number for directory in directories]
+    directory_list = [
+        directory_entry.inode_number for directory_entry in directory_entries
+    ]
     # print(directory_list)
-    
+
     for inode in inodes:
         if inode.link_count != directory_list.count(inode.number):
             print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
-                inode.number, directory_list.count(inode.number), inode.link_count))
+                inode.number, directory_list.count(inode.number),
+                inode.link_count))
 
     #print(free_inode_numbers)
 
-    for directory in directories:
-        if directory.inode_number > total_inode_number:
+    for directory_entry in directory_entries:
+        if directory_entry.inode_number > total_inode_number:
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
-                directory.parent_inode, directory.file_name,
-                directory.inode_number))
-        elif directory.inode_number in free_inode_numbers:
+                directory_entry.parent_inode, directory_entry.file_name,
+                directory_entry.inode_number))
+        elif directory_entry.inode_number in free_inode_numbers:
             print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
-                directory.parent_inode, directory.file_name,
-                directory.inode_number))
+                directory_entry.parent_inode, directory_entry.file_name,
+                directory_entry.inode_number))
         else:
-            directory.link_count += 1
-
-
+            directory_entry.link_count += 1
 
 
 if __name__ == "__main__":

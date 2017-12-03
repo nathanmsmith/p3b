@@ -16,6 +16,7 @@ class Inode:
         self.allocated = allocated
         self.link_count = link_count
 
+
 class Block:
     def __init__(self, indirection_level, number, inode_number, offset):
         self.indirection_level = indirection_level
@@ -73,7 +74,8 @@ def process_file(file):
         elif line[0] == "GROUP":
             num_of_inodes_in_this_group = int(line[3])
             first_block_inode = int(line[8])
-            first_non_reserved_inode_number = int(first_block_inode + ((inode_size * num_of_inodes_in_this_group) / block_size))
+            first_non_reserved_inode_number = int(first_block_inode + (
+                (inode_size * num_of_inodes_in_this_group) / block_size))
         elif line[0] == "BFREE":
             free_block_number = int(line[1])
             free_block_numbers.append(free_block_number)
@@ -130,7 +132,7 @@ def block_audit():
     for block in blocks:
         # Check for invalid blocks
         # An INVALID block is one whose number is less than zero or greater than the highest block in the file system.
-        if block.number not in range(0, total_block_number - 1):
+        if block.number not in range(0, total_block_number):
             print("INVALID {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))

@@ -58,7 +58,7 @@ free_block_numbers: List[int] = []
 blocks: List[Block] = []
 free_inode_numbers: List[int] = []
 inodes: List[Inode] = []
-
+allocated_inode_numbers: List[int] = []
 directory_entries = []
 
 
@@ -160,15 +160,18 @@ def block_audit():
                     duplicate_block.indir_str(), duplicate_block.number,
                     duplicate_block.inode_number, duplicate_block.offset))
 
-
+                
 def inode_audit():
     global allocated_inodes
-
+    
     for inode in inodes:
+        
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
+            allocated_inode_numbers.append(inode.number)
         elif not inode.allocated and inode.number not in free_inode_numbers:
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
+
 
     for inode_number in range(first_inode_number, total_inode_number):
         inode_numbers = [inode.number for inode in inodes]
@@ -205,7 +208,7 @@ def directory_audit():
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))
-        elif directory_entry.inode_number in free_inode_numbers:
+        elif directory_entry.inode_number in free_inode_numbers and directory_entry.inode_number not in allocated_inode_numbers:
             print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))

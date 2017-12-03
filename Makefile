@@ -11,5 +11,5 @@ make:
 clean:
 	rm -f lab3b lab3b-304792166.tar.gz
 
-dist: clean
+dist:
 	tar -zcvf lab3b-304792166.tar.gz Makefile README lab3b.py

@@ -15,8 +15,6 @@ class Inode:
         self.number = number
         self.allocated = allocated
         self.link_count = link_count
-        self.has_links = True if link_count > 0 else False
-
 
 class Block:
     def __init__(self, indirection_level, number, inode_number, offset):
@@ -43,7 +41,6 @@ class DirectoryEntry:
         self.computed_parent_inode: int
         self.inode_number = inode_number
         self.file_name = file_name
-        self.link_count = 0
 
 
 errors = 0
@@ -131,24 +128,33 @@ def block_audit():
     global errors
 
     for block in blocks:
-        if block.number > total_block_number - 1:
+        # Check for invalid blocks
+        # An INVALID block is one whose number is less than zero or greater than the highest block in the file system.
+        if block.number not in range(0, total_block_number - 1):
             print("INVALID {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
             errors += 1
-        elif block.number < first_non_reserved_inode_number:
+
+        # Check for reserved blocks
+        # A RESERVED block is one that could not legally be allocated to any file because it should be reserved for file system metadata (e.g. superblock, cylinder group summary, free block list, ...)
+        elif block.number in range(0, first_non_reserved_inode_number):
             print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(
                 block.indir_str(), block.number, block.inode_number,
                 block.offset))
             errors += 1
 
+    # Every legal data block (every block between the end of the I-nodes and the start of the next group) should appear on on the free block list, or be allocated to exactly one file.
     block_numbers = [block.number for block in blocks]
     for block_number in range(first_non_reserved_inode_number,
                               total_block_number):
-        if block_number not in free_block_numbers and block_number not in block_numbers:
+        # If a block is not referenced by any file and is not on the free list
+        if block_number not in block_numbers and block_number not in free_block_numbers:
             print("UNREFERENCED BLOCK {}".format(block_number))
             errors += 1
-        elif block_number in free_block_numbers and block_number in block_numbers:
+
+        # A block that is allocated to some file also appears on the free list
+        elif block_number in block_numbers and block_number in free_block_numbers:
             print("ALLOCATED BLOCK {} ON FREELIST".format(block_number))
             errors += 1
 
@@ -171,8 +177,9 @@ def block_audit():
 def inode_audit():
     global errors
 
+    # Every unallocated should be on a free I-node list
+    # If discrepancy, print it
     for inode in inodes:
-
         if inode.allocated and inode.number in free_inode_numbers:
             print("ALLOCATED INODE {} ON FREELIST".format(inode.number))
             allocated_inode_numbers.append(inode.number)
@@ -181,7 +188,7 @@ def inode_audit():
             print("UNALLOCATED INODE {} NOT ON FREELIST".format(inode.number))
             errors += 1
 
-
+    # Also loop through all inode numbers to find any unallocated inodes
     for inode_number in range(first_inode_number, total_inode_number):
         inode_numbers = [inode.number for inode in inodes]
         if inode_number not in inode_numbers and inode_number not in free_inode_numbers:
@@ -189,55 +196,47 @@ def inode_audit():
             errors += 1
 
 
-def get_inode_from_number(inode_number):
-    for inode in inodes:
-        if inode.number == inode_number:
-            return inode
-    return None
-
-
-def get_directory_from_inode_number(inode_number):
-    for directory_entry in directory_entries:
-        if directory_entry.inode_number == inode_number:
-            return directory_entry
-    return None
-
-
 def directory_audit():
     global errors
 
-    directory_list = [
+    directory_entry_inode_numbers = [
         directory_entry.inode_number for directory_entry in directory_entries
     ]
 
+    # Find inode link discrepancies
     for inode in inodes:
-        if inode.link_count != directory_list.count(inode.number):
+        if inode.link_count != directory_entry_inode_numbers.count(
+                inode.number):
             print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(
-                inode.number, directory_list.count(inode.number),
-                inode.link_count))
+                inode.number, directory_entry_inode_numbers.count(
+                    inode.number), inode.link_count))
             errors += 1
 
     for directory_entry in directory_entries:
-        if directory_entry.inode_number > total_inode_number:
+        # An INVALID I-node is one whose number is less than 1 or greater than the last I-node in the system.
+        if directory_entry.inode_number not in range(1, total_inode_number):
             print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))
             errors += 1
+
+        # Unallocated inode
         elif directory_entry.inode_number in free_inode_numbers and directory_entry.inode_number not in allocated_inode_numbers:
             print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(
                 directory_entry.parent_inode, directory_entry.file_name,
                 directory_entry.inode_number))
             errors += 1
-        else:
-            directory_entry.link_count += 1
 
+    # Compute parent directory entries
     for directory_entry in directory_entries:
-        if directory_entry.inode_number not in free_inode_numbers and inode.number <= total_inode_number:
+        if directory_entry.inode_number not in free_inode_numbers and inode.number in range(
+                1, total_inode_number):
             directory_entry.computed_parent_inode = directory_entry.parent_inode
 
         if directory_entry.inode_number == 2:
             directory_entry.computed_parent_inode = 2
 
+    # Check for parent directory inconsistencies
     for directory_entry in directory_entries:
         if directory_entry.file_name == "'.'" and directory_entry.inode_number != directory_entry.parent_inode:
             print("DIRECTORY INODE {} NAME '.' LINK TO INODE {} SHOULD BE {}".

@@ -5,5 +5,8 @@ ID: 304792166, 704787554
 
 Files:
 - README: contains description of our included files.
-- lab3b.py: 
-- Makefile: contains the makefile of the lab3b executable
+- lab3b.py: Our solution to the program as described in the spec.
+- Makefile: contains the makefile of the lab3b executable.
+
+Notes:
+- We chose python as our language to implement this project because we were both reasonably comfortable with it and knew that it had a lot of higher level features and data structures that would make processing a CSV file much easier than in a language such as C or C++.
